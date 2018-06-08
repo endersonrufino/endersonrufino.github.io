@@ -43,8 +43,9 @@ h2 {
   color: #495057;
 }
 
+/*aqui altera a cor dos icones das redes sociais ao passar o mouse em cima*/
 .list-social-icons a:hover {
-  color: #BD5D38;
+  color: #95a5a6;
 }
 
 .list-social-icons a .fa-lg {
@@ -55,8 +56,9 @@ h2 {
   font-size: 3rem;
 }
 
+/*aqui altera a cor dos icones das linguagens de programação ao passar o mouse em cima*/
 .list-icons .list-inline-item i:hover {
-  color: #BD5D38;
+  color: #95a5a6;
 }
 
 #sideNav .navbar-nav .nav-item .nav-link {
@@ -130,19 +132,28 @@ section.resume-section .resume-item .resume-date {
   }
 }
 
+/*aqui altera a cor da barra lateral*/
 .bg-primary {
-  background-color: #BD5D38 !important;
+  background-color: #343a40 !important;
 }
 
+/*aqui altera a cor do sobrenome*/
 .text-primary {
-  color: #BD5D38 !important;
+  color: #343a40 !important;
 }
 
+/*altera a cor do email*/
 a {
-  color: #BD5D38;
+  color: #343a40;
 }
 
+/*altera a cor do email quando o mouse passa em cima*/
 a:hover, a:focus, a:active {
-  color: #824027;
+  color: #95a5a6;
+}
+
+#profile-mobile{
+  width: 90px;
+  height: 90px;
 }
 
