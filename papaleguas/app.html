@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplicativo de Treino</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/knockout@3.5.1/build/output/knockout-latest.js"></script>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-image: url(./assets/wallpaper.jpg);
+            /* Substitua pela URL da sua imagem */
+            background-size: cover;
+            background-position: center;
+            position: relative;
+        }
+
+
+
+        #main-content {
+            flex-grow: 1;
+            padding: 20px;
+            width: 80%;
+            position: relative;
+        }
+
+        h2 {
+            margin-bottom: 20px;
+            color: white;
+            /* Para destacar o título */
+            text-align: center;
+        }
+
+        #main-content {
+            flex-grow: 1;
+            padding: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="main-content">
+        <h2>Treinos da Semana</h2>
+        <!-- ko if: vm.hasLevel() -->
+        <div class="row" data-bind="foreach: trainingDays">
+            <div class="col-md-4 col-sm-6 mb-3">
+
+                <div class="card">
+                    <div class="card-header" data-bind="text: data"></div>
+                    <div class="card-body">
+                        <p data-bind="text: treino"></p>
+                        <button class="btn btn-success me-2"
+                            data-bind="click: markTrainingCompleted, text: finalizado() ? '✔ Finalizado' : 'Marcar como finalizado' "></button>
+                        <!--  <button class="btn btn-warning" data-bind="click: trocarTreino">Trocar treino</button>-->
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        <!-- /ko -->
+        <!-- ko if: !vm.hasLevel() -->
+        <div>
+            <p>Escolha um nível de treino que se encaixa no seu perfil.</p>
+            <div>
+                <input type="radio" name="flavorGroup" value="1" data-bind="checked: nivelDeTreino, checkedValue: 1" />
+                Intermediário
+                <input type="radio" name="flavorGroup" value="2" data-bind="checked: nivelDeTreino, checkedValue: 2" />
+                Básico
+
+            </div>
+        </div>
+        <!-- /ko -->
+    </div>
+
+    <script>
+
+        function Treino(src) {
+            var self = this;
+
+            self.dia = ko.observable(src.dia);
+            self.data = ko.observable(src.data);
+            self.treino = ko.observable(src.treino);
+            self.finalizado = ko.observable(src.done);
+            self.tipo = ko.observable(src.tipo);
+            self.nivel = ko.observable(src.nivel);
+
+            self.markTrainingCompleted = () => {
+                self.finalizado(!self.finalizado());
+
+                // Atualizando a lista de treinamentos no localStorage
+                var trainings = JSON.parse(localStorage.getItem('trainings'));
+
+                // Encontrando o treino que foi alterado
+                var treinoAlterado = trainings.find(t => t.data === self.data());
+                if (treinoAlterado) {
+                    treinoAlterado.done = self.finalizado(); // Atualiza o status do treino
+                }
+
+                // Salvando a lista modificada novamente no localStorage
+                localStorage.setItem('trainings', JSON.stringify(trainings));
+            }
+        }
+
+        function AppViewModel() {
+            var self = this;
+
+            self.trainings = ko.observableArray([]);
+            self.trainingDays = ko.observableArray([]);
+
+            var level = localStorage.getItem('trainingLevel');
+
+            self.nivelDeTreino = ko.observable(level === null ? 0 : parseInt(level));
+
+            self.nivelDeTreino.subscribe(function (novoNivel) {
+                localStorage.setItem('trainingLevel', self.nivelDeTreino());
+
+                self.trainingDays(self.gerarTreino());
+            });
+
+            self.hasLevel = ko.computed(function () {
+                return self.nivelDeTreino() != 0;
+            }, this);
+
+            self.getSemanaAtual = () => {
+                let hoje = new Date();
+                let primeiroDiaSemana = new Date(hoje);
+                primeiroDiaSemana.setDate(hoje.getDate() - hoje.getDay()); // Domingo
+
+                let ultimoDiaSemana = new Date(primeiroDiaSemana);
+                ultimoDiaSemana.setDate(primeiroDiaSemana.getDate() + 6); // Sábado
+
+                return { primeiroDiaSemana, ultimoDiaSemana };
+            }
+
+            self.gerarTreino = () => {
+                var self = this;
+                let dias = [];
+                let { primeiroDiaSemana, ultimoDiaSemana } = self.getSemanaAtual();
+
+                let convertedTrainings = [];
+                var trainings = localStorage.getItem('trainings');
+
+                let trainingsObj = JSON.parse(trainings);
+
+                for (training of trainingsObj) {
+                    convertedTrainings.push(new Treino(training));
+                }
+
+                self.trainings(convertedTrainings);
+
+                let treinos = self.trainings().filter(t => t.nivel() === self.nivelDeTreino());
+
+                for (let data = new Date(primeiroDiaSemana); data <= ultimoDiaSemana; data.setDate(data.getDate() + 1)) {
+                    let dataFormatada = `${data.getDate().toString().padStart(2, '0')}/${(data.getMonth() + 1).toString().padStart(2, '0')}/${data.getFullYear()}`;
+                    let treino = treinos.find(t => t.data() === dataFormatada) || null;
+
+                    if (treino !== null) {
+                        dias.push(treino);
+                    }
+                }
+                return dias;
+            }
+
+            self.init = () => {
+                var trainings = localStorage.getItem('trainings');
+
+                if (trainings === null) {
+
+                    let trainings = [
+                        {
+                            "dia": "Terça-feira", "data": "18/02/2025", "tipo": 1, "treino": "Treino bike 25 km velocidade média 23 a 25 km", "nivel": 1, "done": false
+                        },
+                        {
+                            "dia": "Quarta-feira", "data": "19/02/2025", "tipo": 1, "treino": "Bike 35 km velocidade média 23 a 25 terreno plano", "nivel": 1, "done": false
+                        },
+                        {
+                            "dia": "Quinta-feira", "data": "20/02/2025", "tipo": 1, "treino": "Bike 30 km 23 a 24 media", "nivel": 1, "done": false
+                        },
+                        {
+                            "dia": "Sexta-feira", "data": "21/02/2025", "tipo": 1, "treino": "Bike 30 km 23 a 24 vlcd média", "nivel": 1, "done": false
+                        },
+                        {
+                            "dia": "Sábado", "data": "22/02/2025", "tipo": 1, "treino": "20 km giro leve", "nivel": 1, "done": false
+                        },
+                        {
+                            "dia": "Domingo", "data": "23/03/2025", "tipo": 2, "treino": "Bike 45 km a 23 a 25 de média terreno misto com subida e descida", "nivel": 1, "done": false
+                        },
+                        {
+                            "dia": "Segunda-feira", "data": "24/02/2025", "tipo": 1, "treino": "Pedalar 25 minutos leve", "nivel": 2, "done": false
+                        },
+                        {
+                            "dia": "Terça-feira", "data": "25/02/2025", "tipo": 1, "treino": "Pedalar 30 minutos moderado", "nivel": 2, "done": false
+                        },
+                        {
+                            "dia": "Quarta-feira", "data": "26/02/2025", "tipo": 1, "treino": "Bike 25 km a vontade", "nivel": 2, "done": false
+                        },
+                        {
+                            "dia": "Quinta-feira", "data": "27/02/2025", "tipo": 1, "treino": "Bike 20 km giro leve", "nivel": 2, "done": false
+                        },
+                        {
+                            "dia": "Sexta-feira", "data": "28/02/2025", "tipo": 1, "treino": "Bike 30 km moderado", "nivel": 2, "done": false
+                        },
+                        {
+                            "dia": "Sábado", "data": "01/03/2025", "tipo": 2, "treino": "Folga", "nivel": 2, "done": false
+                        },
+                        {
+                            "dia": "Domingo", "data": "02/03/2025", "tipo": 1, "treino": "Bike treino longo 35 a 40 km ritmo a vontade", "nivel": 2, "done": false
+                        },
+                    ];
+
+                    localStorage.setItem("trainings", JSON.stringify(trainings))
+                } else {
+                    self.trainings(trainings);
+                }
+
+                self.trainingDays(self.gerarTreino());
+            }
+
+            self.init();
+
+
+        }
+
+        var vm = new AppViewModel()
+        ko.applyBindings(vm, document.getElementById('main-content'));
+    </script>
+</body>
+
+</html>
